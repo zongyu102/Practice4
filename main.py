@@ -131,9 +131,9 @@ class PositionalEncoding:
 
 #获取光线,包括原点和方向
 def get_rays(H, W, K, c2w, device):
-    #(x, y) = torch.meshgrid(torch.arange(W, dtype=torch.float32), torch.arange(H, dtype=torch.float32), indexing='xy')
+    (x, y) = torch.meshgrid(torch.arange(W, dtype=torch.float32), torch.arange(H, dtype=torch.float32), indexing='xy')
 
-    (x, y) = torch.meshgrid(torch.arange(H, dtype=torch.float32), torch.arange(W, dtype=torch.float32))
+    #(x, y) = torch.meshgrid(torch.arange(H, dtype=torch.float32), torch.arange(W, dtype=torch.float32))
     dirs = torch.stack([(x - K[0][2]) / K[0][0], -(y - K[1][2]) / K[1][1], -torch.ones_like(x)], dim=-1)  # (H,W,3)
     dirs = dirs.to(device)
     rays_d = dirs @ (c2w[:3, :3].t())
@@ -254,14 +254,14 @@ def batchify(fn, netChunk=None):
 
 
 
-def render(rays, Coarse, Fine, posENC, dirENC, perturb_, device):
+def render(rays, Coarse, Fine, posENC, dirENC, perturb, device):
     # rays shape is [size, 6 or 9]
     ray_size = rays.shape[0]
     rays_o, rays_d = rays[..., :3], rays[..., 3:6]  # (ray_size,3), (ray_size,3)
     viewDir = rays[..., 6:] if use_viewDirection else None  # (ray_size,3)
     # 获得每个光束上的粗采样点
     tVals = get_tVals(batch_size=ray_size, sample_size=Nc, near=2., far=6., lindisp=False,
-                      perturb=perturb_)  # (ray_size,Nc)
+                      perturb=perturb)  # (ray_size,Nc)
     tVals = tVals.to(device)
     # 论文公式
     points = rays_o[..., None, :] + rays_d[..., None, :] * tVals[..., None]  # (ray_size,Nc,3)
@@ -324,7 +324,7 @@ def render_full_image(render_pose, hw, K, Coarse, Fine, posENC, dirENC, device):
     all_ret = {}
     #渲染图片,一次处理chunk条
     for i in tqdm(range(0, rays.shape[0], chunk), desc='Rendering Image', leave=False):
-        ret = render(rays[i:i + chunk], Coarse, Fine, posENC, dirENC, perturb_=False, device=device)
+        ret = render(rays[i:i + chunk], Coarse, Fine, posENC, dirENC, perturb=False, device=device)
         for k in ret:
             if k not in all_ret:
                 all_ret[k] = []
@@ -404,10 +404,9 @@ def Train(dataSetPath, exp_name, test_img_idx):
             dH = int(0.5 * H * preCrop_fraction)
             dW = int(0.5 * W * preCrop_fraction)
             coords = torch.stack(torch.meshgrid(torch.arange(H // 2 - dH, H // 2 + dH),
-                                                torch.arange(W // 2 - dW, W // 2 + dW)), dim=-1)
+                                                torch.arange(W // 2 - dW, W // 2 + dW), indexing='ij'), dim=-1)
         else:#整个照片范围内采样
-            coords = torch.stack(torch.meshgrid(torch.arange(0, H), torch.arange(0, W)),
-                                 dim=-1)
+            coords = torch.stack(torch.meshgrid(torch.arange(0, H), torch.arange(0, W), indexing='ij'), dim=-1)
         coords = torch.reshape(coords, shape=[-1, 2])#保证列数为2，行数不定。2维表示行列位置
         batch_ray_idxs = np.random.choice(coords.shape[0], size=N_rand, replace=False)#选中像素数量也就是光束的数量
         selected_coords = coords[batch_ray_idxs].long()  # (N_rand,2)
@@ -420,7 +419,7 @@ def Train(dataSetPath, exp_name, test_img_idx):
             viewDir = rays_d / torch.norm(rays_d, dim=-1, keepdim=True)
             rays = torch.cat([rays, viewDir], dim=-1)#方向信息进行拼接
 
-        render_return = render(rays, Coarse, Fine, posENC, dirENC, perturb_=perturb, device=device)
+        render_return = render(rays, Coarse, Fine, posENC, dirENC, perturb=perturb, device=device)
         pred = render_return['rgb_map']
 
         optimizer.zero_grad()

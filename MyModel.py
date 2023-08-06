@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 
 class NeRF(nn.Module):
-    def __init__(self, depth=8, hidden_units=256, position_ch=64,
-                 direction_ch=24, output_ch=4, skip=4, use_viewdirs=True):
+    def __init__(self, depth=8, hidden_units=256, position_ch=3,
+                 direction_ch=3, output_ch=4, skip=4, use_viewdirs=True):
 
         super().__init__()
         self.position_ch = position_ch

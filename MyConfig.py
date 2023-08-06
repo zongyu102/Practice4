@@ -10,18 +10,18 @@ lr_decay = 500#学习率指数下降参数
 #运行参数
 totalSteps = 100000#1个epoch是100steps,共1000个epoch
 render_one_test_image_epoch = 50#每50个epoch渲染一张图片
-half_res = True#读取图片变为原来一半
+half_res = False#读取图片变为原来一半
 
 #光束参数
-chunk = 1024 * 16#同时处理的光线数量
-networkChunk = 1024 * 32#渲染时同时处理的光线数量
+chunk = 1024 * 32#同时处理的光线数量
+networkChunk = 1024 * 64#渲染时同时处理的光线数量
 
 #采样参数
 N_rand = 1024#从一张训练图像中随机采样的光线数量或者说是像素数量
 Nc = 64#Coarse Net一条光束的采样点数量
 Nf = 128#Fine Net一条光束的采样点数量
 
-preCrop_iter = 500#采用区域采样的steps
+preCrop_iter = 5000#采用区域采样的steps
 preCrop_fraction = 0.5#区域采样的参数
 
 #可选参数
@@ -36,4 +36,3 @@ raw_noise_std = 0.
 #保存路径
 testImg_save_pth = './fine_Image/'
 model_save_pth = './models/'
-renderingImg_save_path = './rendered_Image/'
